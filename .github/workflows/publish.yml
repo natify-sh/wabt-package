@@ -10,10 +10,25 @@ on:
       - "**.md"
       - "LICENSE"
   workflow_dispatch:
+    inputs:
+      testpypi:
+        description: "Publish to test pypi"
+        required: false
+        type: boolean
+        default: false
+      version:
+        description: "Override version (e.g. 1.0.42.0b1) — required for TestPyPI to get a clean version instead of a dev suffix"
+        required: false
+        type: string
+        default: ""
 
-# pull_request is build-only: no job below grants publish permissions for it.
+# pull_request here is deliberately build-only (see the deploy job's own environment/if:
+# conditions below - none of them match a pull_request event, so no publish permissions are ever
+# granted or used) - it exists to catch cibuildwheel-matrix-specific breakage before it ships,
+# instead of only ever surfacing at actual release time.
 run-name: >
   Build & Publish → ${{ github.event_name == 'push' && 'PyPI' ||
+      github.event_name == 'workflow_dispatch' && inputs.testpypi && 'TestPyPI' ||
       'Build Only' }}
 
 concurrency:
@@ -28,8 +43,10 @@ jobs:
     name: Build SDist
     runs-on: ubuntu-latest
     env:
-      # PyPI rejects local version segments (+g<hash>): strip them only when this run publishes.
-      SETUPTOOLS_SCM_OVERRIDES: ${{ github.event_name == 'push' && '{local_scheme = "no-local-version"}' || '' }}
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ inputs.version }}
+      # PyPI/TestPyPI reject local version segments (+g<hash>): strip them only when this run publishes;
+      # build-only runs keep it for traceability.
+      SETUPTOOLS_SCM_OVERRIDES: ${{ (github.event_name == 'push' || inputs.testpypi) && '{local_scheme = "no-local-version"}' || '' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -90,6 +107,13 @@ jobs:
             cibw_archs: "aarch64,armv7l"
             cibw_platform: linux
 
+          - name: Linux ppc64le / s390x / riscv64
+            artifact_key: linux-ppc64le-s390x-riscv64
+            os: ubuntu-latest
+            cibw_archs: "ppc64le,s390x,riscv64" # all over QEMU
+            cibw_platform: linux
+            needs_qemu: true
+
           - name: Windows x64 / x86
             artifact_key: windows-x64-x86
             os: windows-latest
@@ -140,10 +164,13 @@ jobs:
 
       - name: Build binary python package
         env:
-              # Must also be listed in CIBW_ENVIRONMENT_PASS, otherwise it never reaches container-based
-          # (manylinux/musllinux) builds - Windows/macOS inherit the host environment.
-          SETUPTOOLS_SCM_OVERRIDES: ${{ github.event_name == 'push' && '{local_scheme = "no-local-version"}' || '' }}
-          CIBW_ENVIRONMENT_PASS: SETUPTOOLS_SCM_OVERRIDES
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ inputs.version }}
+          # see SETUPTOOLS_SCM_OVERRIDES comment in build-sdist.
+          # Must also be listed in CIBW_ENVIRONMENT_PASS below, otherwise it never reaches
+          # container-based builds (e.g. manylinux via Docker) — only Windows/macOS inherit the full
+          # host environment automatically.
+          SETUPTOOLS_SCM_OVERRIDES: ${{ (github.event_name == 'push' || inputs.testpypi) && '{local_scheme = "no-local-version"}' || '' }}
+          CIBW_ENVIRONMENT_PASS: SETUPTOOLS_SCM_PRETEND_VERSION SETUPTOOLS_SCM_OVERRIDES
         run: |
           uvx cibuildwheel \
             --output-dir wheelhouse \
@@ -166,15 +193,24 @@ jobs:
     needs: [build-sdist, build-wheels]
     runs-on: ubuntu-latest
 
-    # PyPI on a tag push, otherwise just a build.
-    environment: ${{ github.event_name == 'push' && 'pypi' || 'build' }}
+    # Dynamic: real PyPI on a tag push, TestPyPI on an explicit opt-in dispatch, otherwise just a
+    # build (no publish permissions needed/granted for that last case).
+    environment: ${{ github.event_name == 'push' && 'pypi' ||
+      (github.event_name == 'workflow_dispatch' && inputs.testpypi) && 'testpypi' || 'build' }}
     permissions:
+      # job-level permissions replace (not merge with) the workflow-level block above,
+      # so everything this job needs must be listed here explicitly.
       contents: write # required to create the GitHub Release
-      id-token: write # mandatory for trusted publishing
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
 
     steps:
       - uses: actions/checkout@v7
         with:
+          # github.ref_name is the bare tag name on a push (correct), but on pull_request it's
+          # the short "<PR>/merge" form (not a fetchable ref on its own - actions/checkout would
+          # try refs/heads/<PR>/merge, which doesn't exist) - github.head_ref is the PR's actual
+          # source branch name instead, and is empty for every other event this workflow handles.
           ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Download all artifacts dynamically
@@ -235,3 +271,9 @@ jobs:
         with:
           skip-existing: true
 
+      - name: Publish package distributions to TestPyPI
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.testpypi == true }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          repository-url: https://test.pypi.org/legacy/
