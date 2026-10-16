@@ -77,22 +77,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux x64 (manylinux, musllinux)
-            artifact_key: linux-x64
+          - name: Linux x64 / x86
+            artifact_key: linux-x64-x86
             os: ubuntu-latest
-            cibw_archs: "x86_64"
+            cibw_archs: "i686,x86_64" # x64 native, i686 over QEMU
             cibw_platform: linux
+            needs_qemu: true
 
-          - name: Linux ARM64 (manylinux, musllinux)
-            artifact_key: linux-arm64
+          - name: Linux ARM64 / ARMv7
+            artifact_key: linux-arm64-armv7
             os: ubuntu-24.04-arm
-            cibw_archs: "aarch64"
+            cibw_archs: "aarch64,armv7l"
             cibw_platform: linux
 
-          - name: Windows x64
-            artifact_key: windows-x64
+          - name: Windows x64 / x86
+            artifact_key: windows-x64-x86
             os: windows-latest
-            cibw_archs: "AMD64"
+            cibw_archs: "x86,AMD64"
             cibw_platform: windows
 
           - name: Windows ARM64
@@ -104,7 +105,7 @@ jobs:
           - name: macOS Apple Silicon
             artifact_key: macos-arm64
             os: macos-26
-            cibw_archs: "arm64"
+            cibw_archs: "arm64,universal2"
             cibw_platform: macos
 
           - name: macOS Intel
@@ -125,6 +126,12 @@ jobs:
       - name: Fetch the one nested submodule WABT needs
         run: git -C wabt submodule update --init --depth 1 third_party/picosha2
         shell: bash
+
+      - name: Set up QEMU for Emulated Architectures
+        if: ${{ matrix.needs_qemu }}
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
 
       - name: Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0

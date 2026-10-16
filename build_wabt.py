@@ -25,7 +25,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 WABT_DIR = Path(os.environ.get("WABT_DIR") or ROOT / "wabt")
 OUT_DIR = ROOT / "src" / "wabt_package"
-BUILD_DIR = ROOT / "build" / "wabt"
+# One build tree per target: cibuildwheel builds several architectures one after the other on a runner (Windows x86 and
+# x64, macOS arm64 and universal2), and a CMake tree cannot switch its generator platform or architectures.
+_TARGET = "-".join(
+    part
+    for part in (sysconfig.get_platform(), *(os.environ.get("ARCHFLAGS", "").replace("-arch", " ").split()))
+    if part
+)
+BUILD_DIR = ROOT / "build" / f"wabt-{_TARGET}"
 # Written into the sdist (see setup.py), where the submodule's git metadata is not available.
 VERSION_FILE = OUT_DIR / "_wabt_version.txt"
 STAMP_FILE = BUILD_DIR / "staged.stamp"

@@ -91,7 +91,7 @@ test-requires = "pytest"
 test-command = "pytest {project}/tests"
 
 [tool.cibuildwheel.macos]
-# 11.0 is the floor of arm64 macOS; x86_64 is built on its own runner (no universal2: the tools would be twice the size).
+# 11.0 is the floor of arm64 macOS; x86_64 is built on its own runner (plus a universal2 wheel from the arm64 runner).
 environment = { MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
 [tool.pytest.ini_options]
