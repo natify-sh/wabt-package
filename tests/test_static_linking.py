@@ -123,7 +123,7 @@ def test_macos_tools_do_not_need_a_newer_macos_than_the_wheel_says(tool: str) ->
         [otool, "-l", str(wabt.get_executable(tool))], check=True, capture_output=True, text=True
     ).stdout
     # LC_BUILD_VERSION says `minos`; its `tool ... version` lines are the linker's own version, not a system's
-    found = []
+    found: list[tuple[str, str]] = []
     for block in out.split("Load command ")[1:]:
         if "cmd LC_BUILD_VERSION" in block:
             found += re.findall(r"^\s*minos\s+(\d+)\.(\d+)", block, flags=re.MULTILINE)
