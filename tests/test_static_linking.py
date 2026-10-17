@@ -6,6 +6,7 @@ OpenSSL of the build machine would work in CI and fail at the user's. This runs 
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import struct
@@ -116,6 +117,8 @@ def test_windows_tools_do_not_import_the_c_runtime_dlls(tool: str) -> None:
 @pytest.mark.parametrize("tool", wabt.TOOLS)
 def test_macos_tools_do_not_need_a_newer_macos_than_the_wheel_says(tool: str) -> None:
     """MACOSX_DEPLOYMENT_TARGET is 11.0 (pyproject.toml): a tool that asks for a newer system would not start on an older one."""
+    if not os.environ.get("CIBUILDWHEEL"):
+        pytest.skip("not a cibuildwheel build: MACOSX_DEPLOYMENT_TARGET is not set, the SDK's default applies")
     otool = shutil.which("otool")
     if otool is None:
         pytest.skip("no otool")
