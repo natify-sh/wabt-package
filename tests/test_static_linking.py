@@ -122,7 +122,13 @@ def test_macos_tools_do_not_need_a_newer_macos_than_the_wheel_says(tool: str) ->
     out = subprocess.run(
         [otool, "-l", str(wabt.get_executable(tool))], check=True, capture_output=True, text=True
     ).stdout
-    found = re.findall(r"^\s*(?:minos|version)\s+(\d+)\.(\d+)", out, flags=re.MULTILINE)
+    # LC_BUILD_VERSION says `minos`; its `tool ... version` lines are the linker's own version, not a system's
+    found = []
+    for block in out.split("Load command ")[1:]:
+        if "cmd LC_BUILD_VERSION" in block:
+            found += re.findall(r"^\s*minos\s+(\d+)\.(\d+)", block, flags=re.MULTILINE)
+        elif "cmd LC_VERSION_MIN_" in block:
+            found += re.findall(r"^\s*version\s+(\d+)\.(\d+)", block, flags=re.MULTILINE)
     if not found:
         pytest.skip("no minimum system version in the load commands")
     newest = max((int(a), int(b)) for a, b in found)
