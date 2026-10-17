@@ -35,6 +35,17 @@ wabt.include_dir()  # -I for <simde/...>; wabt.simde_commit() is the commit of t
 wabt.wabt_version()  # "1.0.42"
 ```
 
+### SIMD
+
+The C that `wasm2c` writes for a module with SIMD instructions includes `<simde/wasm/simd128.h>`. WABT does not ship
+[simde](https://github.com/simd-everywhere/simde) in its releases, so this package does: `include_dir()` is the directory to
+pass with `-I` (it holds `simde/`), and `simde_commit()` says which commit it is: the one WABT itself pins as its submodule
+`third_party/simde`, so the headers and `wasm2c` are of the same version. Modules without SIMD need nothing but `runtime_dir()`.
+
+```sh
+cc -c module.c -I"$(python -c 'import wabt_package as w; print(w.runtime_dir())')" -I"$(python -c 'import wabt_package as w; print(w.include_dir())')"
+```
+
 ## Wheels
 
 The publish workflow builds `py3-none-<platform>` wheels (the executables do not depend on the interpreter) for the desktop platforms
