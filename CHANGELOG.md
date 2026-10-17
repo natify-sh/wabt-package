@@ -10,7 +10,8 @@ tools are built from plus a build number: `1.0.42.0` is WABT 1.0.42, first build
 ### Added
 - The headers of simde (of the commit WABT pins) at `wabt_package.include_dir()`, with `simde_commit()`: the C that `wasm2c` writes for
   SIMD includes `<simde/wasm/simd128.h>`.
-- Wheels for Linux x86, ARMv7, ppc64le, s390x and riscv64, Windows x86, macOS universal2 (see the publish workflow).
+- Wheels for Linux i686, armv7l, ppc64le, s390x and riscv64 (manylinux and musllinux), Windows x86, macOS universal2 (see the
+  publish workflow). Every wheel is checked to be linked statically against the C++ runtime.
 - WABT 1.0.42 built from the `wabt` submodule: `spectest-interp`, `wasm-interp`, `wasm-objdump`, `wasm-stats`,
   `wasm-strip`, `wasm-validate`, `wasm2c`, `wasm2wat`, `wast2json`, `wat-desugar`, `wat2wasm`, as console scripts and
   through `wabt_package.run()` / `get_executable()`.

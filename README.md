@@ -48,11 +48,20 @@ cc -c module.c -I"$(python -c 'import wabt_package as w; print(w.runtime_dir())'
 
 ## Wheels
 
-`py3-none-<platform>` wheels (the executables do not depend on the interpreter): Linux manylinux and musllinux
-(x86_64, aarch64), Windows (x64, ARM64), macOS (arm64, x86_64). Anywhere else the sdist builds the tools from source and
-needs a C++ compiler (`cmake` and `ninja` are fetched from PyPI).
+`py3-none-<platform>` wheels (the executables do not depend on the interpreter), for the desktop platforms of
+[cibuildwheel](https://cibuildwheel.pypa.io): 
 
-The executables are linked statically against the C++ runtime and use WABT's own SHA-256 (no OpenSSL).
+| | |
+|---|---|
+| Linux, manylinux and musllinux | x86_64, aarch64, i686, armv7l, ppc64le, s390x, riscv64 |
+| Windows | x64, ARM64, x86 |
+| macOS | arm64, x86_64, universal2 |
+
+The emulated Linux architectures (everything but x86_64 and aarch64) are built under QEMU. There are no wheels for Android, iOS or
+Pyodide: the tools run on the machine that builds, and a package for those targets is built with the wheel of the host.
+Anywhere else the sdist builds the tools from source and needs a C++20 compiler (`cmake` and `ninja` are fetched from PyPI).
+
+The executables are linked statically against the C++ runtime and use WABT's own SHA-256 (no OpenSSL). No shared library but the C library of the system is needed (a test checks it on every platform).
 
 ## Development
 
