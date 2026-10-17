@@ -66,7 +66,7 @@ The executables are linked statically against the C++ runtime and use WABT's own
 ## Development
 
 ```sh
-git clone --recurse-submodules https://github.com/ballistics-lab/wabt-package
+git clone --recurse-submodules https://github.com/natify-sh/wabt-package
 cd wabt-package
 git -C wabt submodule update --init --depth 1 third_party/picosha2 third_party/simde   # the nested submodules needed
 uv sync          # builds WABT (a minute) and installs the package in editable mode

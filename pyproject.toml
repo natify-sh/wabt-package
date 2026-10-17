@@ -33,9 +33,9 @@ dependencies = []
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://github.com/ballistics-lab/wabt-package"
-"Bug Reports" = "https://github.com/ballistics-lab/wabt-package/issues"
-"Source" = "https://github.com/ballistics-lab/wabt-package"
+"Homepage" = "https://github.com/natify-sh/wabt-package"
+"Bug Reports" = "https://github.com/natify-sh/wabt-package/issues"
+"Source" = "https://github.com/natify-sh/wabt-package"
 "WABT" = "https://github.com/WebAssembly/wabt"
 
 # One console script per tool of wabt_package.TOOLS: each runs the bundled executable of the same name.
