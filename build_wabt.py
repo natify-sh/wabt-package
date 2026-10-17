@@ -101,9 +101,20 @@ def simde_commit() -> str:
     return "unknown"
 
 
-def _run(cmd: list[str]) -> None:
+def _run(cmd: list[str], env: dict[str, str] | None = None) -> None:
     print("+", " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, env=env)
+
+
+def _configure_env() -> dict[str, str]:
+    """The environment of `cmake` configuring: on Windows /MP, since the Visual Studio generator compiles the files of a target
+    one by one (`--parallel` runs targets side by side, and WABT's sources are one target). CMake puts CFLAGS/CXXFLAGS before its own
+    defaults (/EHsc, ...), so those stay."""
+    env = dict(os.environ)
+    if sys.platform == "win32":
+        for var in ("CFLAGS", "CXXFLAGS"):
+            env[var] = f"{env.get(var, '')} /MP".strip()
+    return env
 
 
 def _find(tool: str, module: str, attr: str) -> str | None:
@@ -254,7 +265,7 @@ def build() -> None:
     _ensure_picosha2()
     _ensure_simde()
 
-    _run([cmake, *_cmake_args()])
+    _run([cmake, *_cmake_args()], _configure_env())
     _run([cmake, "--build", str(BUILD_DIR), "--config", "Release", "--parallel", "--target", *TOOLS])
 
     bin_dir = OUT_DIR / "bin"
