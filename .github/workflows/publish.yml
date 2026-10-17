@@ -107,10 +107,24 @@ jobs:
             cibw_archs: "aarch64,armv7l"
             cibw_platform: linux
 
-          - name: Linux ppc64le / s390x / riscv64
-            artifact_key: linux-ppc64le-s390x-riscv64
+          - name: Linux ppc64le
+            artifact_key: linux-ppc64le
             os: ubuntu-latest
-            cibw_archs: "ppc64le,s390x,riscv64" # all over QEMU
+            cibw_archs: "ppc64le" # over QEMU, one job each so that they run in parallel
+            cibw_platform: linux
+            needs_qemu: true
+
+          - name: Linux s390x
+            artifact_key: linux-s390x
+            os: ubuntu-latest
+            cibw_archs: "s390x" # over QEMU, one job each so that they run in parallel
+            cibw_platform: linux
+            needs_qemu: true
+
+          - name: Linux riscv64
+            artifact_key: linux-riscv64
+            os: ubuntu-latest
+            cibw_archs: "riscv64" # over QEMU, one job each so that they run in parallel
             cibw_platform: linux
             needs_qemu: true
 
