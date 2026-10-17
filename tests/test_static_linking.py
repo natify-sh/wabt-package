@@ -100,7 +100,8 @@ def test_macos_tools_need_only_system_libraries(tool: str) -> None:
     out = subprocess.run(
         [otool, "-L", str(wabt.get_executable(tool))], check=True, capture_output=True, text=True
     ).stdout
-    libs = [line.split()[0] for line in out.splitlines()[1:] if line.strip()]
+    # the libraries are the indented lines; a universal2 file has one unindented header per architecture
+    libs = [line.split()[0] for line in out.splitlines() if line[:1].isspace()]
     bad = [lib for lib in libs if not _MACOS_OK.match(lib)]
     assert not bad, f"{tool} needs {bad} (all: {libs})"
 
