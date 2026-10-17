@@ -102,6 +102,11 @@ environment = { CC = "gcc-12", CXX = "g++-12" }
 select = "*-manylinux_riscv64"
 before-all = "dnf install -y libstdc++-static"
 
+[[tool.cibuildwheel.overrides]]
+# PyPI has no uv wheels for these musllinux architectures (cibuildwheel stops at `which uv`): the plain build frontend.
+select = ["*-musllinux_ppc64le", "*-musllinux_s390x", "*-musllinux_riscv64"]
+build-frontend = "build"
+
 [tool.cibuildwheel.macos]
 # 11.0 is the floor of arm64 macOS; x86_64 is built on its own runner (plus a universal2 wheel from the arm64 runner).
 environment = { MACOSX_DEPLOYMENT_TARGET = "11.0" }
