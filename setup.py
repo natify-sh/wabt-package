@@ -5,7 +5,7 @@ All metadata lives in pyproject.toml; this file only wires build_wabt.build() in
 - build_py builds the tools into src/wabt_package/ before packaging, so wheels, sdist->wheel builds and
   editable installs (`uv sync`) all get them without a separate step; setuptools copies package data without the
   executable bit, so it is put back on the built copies;
-- sdist records the WABT version next to the sources, because the unpacked sdist has no git metadata to
+- sdist records the WABT version and the commit of simde next to the sources, because the unpacked sdist has no git metadata to
   `git describe`;
 - the distribution claims to have extension modules, so that the files go to platlib (not purelib): auditwheel
   refuses to repair a wheel with executables in purelib;
@@ -55,6 +55,11 @@ class SdistWithWabtVersion(sdist):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
             f.write(build_wabt.wabt_version() + "\n")
+        simde_path = os.path.join(base_dir, os.path.relpath(build_wabt.SIMDE_COMMIT_FILE, build_wabt.ROOT))
+        if os.path.exists(simde_path):
+            os.remove(simde_path)
+        with open(simde_path, "w") as f:
+            f.write(build_wabt.simde_commit() + "\n")
 
 
 class Py3NonePlatformWheel(bdist_wheel):

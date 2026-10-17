@@ -2,14 +2,18 @@
 
     src/wabt_package/bin/<tool>[.exe]       the executables (wabt_package.TOOLS)
     src/wabt_package/wasm2c/                wasm2c's runtime sources: wasm-rt.h, wasm-rt-impl.c, ... (of the same version)
+    src/wabt_package/include/simde/         the headers of simde that the C of wasm2c includes for SIMD, of the commit
+                                            that WABT pins as its submodule `third_party/simde`
+    src/wabt_package/_simde_commit.txt      that commit
     src/wabt_package/_wabt_version.txt      the WABT version, from the submodule's tag
 
 Runs from setup.py on every build (wheel, sdist -> wheel, editable `uv sync`), and by hand as
 `uv run python build_wabt.py`. Plain Python so it works on Windows too.
 
-Sources: the `wabt` git submodule, pinned to a release tag (shipped inside the sdist). Of WABT's own submodules only
-`third_party/picosha2` is needed (SHA-256 for `wasm2c`'s module hashing; with it the tools do not link against OpenSSL,
-which is what makes the executables portable). Compiler: the platform's own (gcc/clang/MSVC); `cmake` and `ninja` are
+Sources: the `wabt` git submodule, pinned to a release tag (shipped inside the sdist). Of WABT's own submodules
+`third_party/picosha2` is needed to build (SHA-256 for `wasm2c`'s module hashing; with it the tools do not link against
+OpenSSL, which is what makes the executables portable) and `third_party/simde` is carried along (headers only): the C that
+`wasm2c` writes for SIMD includes it, WABT does not ship it, and taking it from WABT's own pin keeps it in step with the version. Compiler: the platform's own (gcc/clang/MSVC); `cmake` and `ninja` are
 build requirements in pyproject.toml, so a plain `pip install` / `uv build` needs neither preinstalled.
 """
 
@@ -35,6 +39,9 @@ _TARGET = "-".join(
 BUILD_DIR = ROOT / "build" / f"wabt-{_TARGET}"
 # Written into the sdist (see setup.py), where the submodule's git metadata is not available.
 VERSION_FILE = OUT_DIR / "_wabt_version.txt"
+SIMDE_DIR = WABT_DIR / "third_party" / "simde"
+SIMDE_COMMIT_FILE = OUT_DIR / "_simde_commit.txt"
+SIMDE_HEADER = Path("simde") / "wasm" / "simd128.h"
 STAMP_FILE = BUILD_DIR / "staged.stamp"
 
 # Keep in sync with wabt_package.TOOLS and [project.scripts]. The set belongs to the pinned WABT release (1.0.42 has no
@@ -75,6 +82,25 @@ def wabt_version() -> str:
     return "unknown"
 
 
+def simde_commit() -> str:
+    """The commit of simde that WABT pins (read from WABT's tree, so it does not need the submodule checked out), else the
+    one recorded in the sdist, else "unknown"."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(WABT_DIR), "ls-tree", "HEAD", "third_party/simde"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.split()
+        if len(out) >= 3 and out[0] == "160000" and len(out[2]) == 40:  # "160000 commit <sha>\t<path>"
+            return out[2]
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    if SIMDE_COMMIT_FILE.exists():
+        return SIMDE_COMMIT_FILE.read_text(encoding="utf-8").strip()
+    return "unknown"
+
+
 def _run(cmd: list[str]) -> None:
     print("+", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True)
@@ -112,6 +138,37 @@ def _ensure_picosha2() -> None:
         )
 
 
+def _ensure_simde() -> None:
+    header = SIMDE_DIR / SIMDE_HEADER
+    if header.exists():
+        return
+    print("+ git submodule update --init third_party/simde", flush=True)
+    try:
+        subprocess.run(
+            ["git", "-C", str(WABT_DIR), "submodule", "update", "--init", "--depth", "1", "third_party/simde"],
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    if not header.exists():
+        raise SystemExit(
+            f"{header} is missing: run `git -C {WABT_DIR} submodule update --init third_party/simde` "
+            "(the sdist carries it; a plain git checkout needs the nested submodule)"
+        )
+
+
+def _has_static_libstdcxx() -> bool:
+    """Whether the C++ compiler finds a static libstdc++ (the manylinux riscv64 image does not carry one)."""
+    cxx = os.environ.get("CXX") or shutil.which("c++") or "c++"
+    try:
+        out = subprocess.run(
+            [cxx, "-print-file-name=libstdc++.a"], check=True, capture_output=True, text=True
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return os.path.isabs(out) and os.path.exists(out)  # gcc prints the bare name when it finds nothing
+
+
 def _cmake_args() -> list[str]:
     args = [
         f"-S{WABT_DIR}",
@@ -137,6 +194,11 @@ def _cmake_args() -> list[str]:
             args += ["-GNinja", f"-DCMAKE_MAKE_PROGRAM={ninja}"]
         if sys.platform.startswith("linux"):
             # libstdc++ and libgcc inside the executables: they run on any glibc/musl that the wheel's tag allows.
+            if not _has_static_libstdcxx():
+                raise SystemExit(
+                    "no static libstdc++ (libstdc++.a) found: the tools are linked statically against it, so that they run "
+                    "on any glibc/musl the wheel's tag allows. Install it (libstdc++-static, or libstdc++-dev on Alpine)."
+                )
             args += ["-DCMAKE_EXE_LINKER_FLAGS=-static-libstdc++ -static-libgcc -s"]
         elif sys.platform == "darwin":
             archs = [a for a in os.environ.get("ARCHFLAGS", "").split("-arch") if a.strip()]
@@ -162,6 +224,7 @@ def _stamp(version: str) -> str:
         os.environ.get("ARCHFLAGS", ""),
         os.environ.get("MACOSX_DEPLOYMENT_TARGET", ""),
     ]
+    parts.append(simde_commit())
     parts.append(str(hash(Path(__file__).read_bytes())))
     return "\n".join(parts)
 
@@ -170,7 +233,11 @@ def _staged(stamp: str) -> bool:
     if not (STAMP_FILE.exists() and STAMP_FILE.read_text(encoding="utf-8") == stamp):
         return False
     bins = [OUT_DIR / "bin" / (t + EXE_SUFFIX) for t in TOOLS]
-    return all(p.exists() for p in bins) and (OUT_DIR / "wasm2c" / "wasm-rt.h").exists()
+    return (
+        all(p.exists() for p in bins)
+        and (OUT_DIR / "wasm2c" / "wasm-rt.h").exists()
+        and (OUT_DIR / "include" / SIMDE_HEADER).exists()
+    )
 
 
 def build() -> None:
@@ -185,6 +252,7 @@ def build() -> None:
     if not cmake:
         raise SystemExit("cmake was not found: `pip install cmake` (it is a build requirement in pyproject.toml)")
     _ensure_picosha2()
+    _ensure_simde()
 
     _run([cmake, *_cmake_args()])
     _run([cmake, "--build", str(BUILD_DIR), "--config", "Release", "--parallel", "--target", *TOOLS])
@@ -199,9 +267,18 @@ def build() -> None:
     for pattern in RUNTIME_PATTERNS:
         for src in sorted((WABT_DIR / "wasm2c").glob(pattern)):
             shutil.copy2(src, runtime_dir / src.name)
+    include_dir = OUT_DIR / "include"
+    shutil.rmtree(include_dir, ignore_errors=True)
+    shutil.copytree(
+        SIMDE_DIR / "simde",
+        include_dir / "simde",
+        ignore=lambda folder, names: [n for n in names if not (Path(folder) / n).is_dir() and not n.endswith(".h")],
+    )
+    shutil.copy2(SIMDE_DIR / "COPYING", include_dir / "simde" / "COPYING")
     VERSION_FILE.write_text(version + "\n", encoding="utf-8")
+    SIMDE_COMMIT_FILE.write_text(simde_commit() + "\n", encoding="utf-8")
     STAMP_FILE.write_text(stamp, encoding="utf-8")
-    print(f"staged WABT {version}: {len(TOOLS)} tools + wasm2c runtime in {OUT_DIR}")
+    print(f"staged WABT {version}: {len(TOOLS)} tools + wasm2c runtime + simde {simde_commit()[:12]} in {OUT_DIR}")
 
 
 if __name__ == "__main__":

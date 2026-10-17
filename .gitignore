@@ -21,3 +21,5 @@ wheelhouse/
 src/wabt_package/bin/
 src/wabt_package/wasm2c/
 src/wabt_package/_wabt_version.txt
+src/wabt_package/include/
+src/wabt_package/_simde_commit.txt

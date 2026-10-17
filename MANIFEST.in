@@ -1,11 +1,14 @@
 # The sdist must be buildable on its own: the build hooks, the package sources, and from the wabt submodule what
 # CMake needs to build the tools. setuptools-scm lists git files but does not recurse into submodules, so the
-# submodule content is listed explicitly, and of WABT's own submodules only PicoSHA2 (see build_wabt.py).
+# submodule content is listed explicitly, and of WABT's own submodules PicoSHA2 (built into the tools) and the headers of
+# simde (shipped for the SIMD of wasm2c's C); see build_wabt.py.
 include build_wabt.py setup.py README.md LICENSE NOTICE.md CHANGELOG.md
 graft src
 prune src/wabt_package/bin
 prune src/wabt_package/wasm2c
+prune src/wabt_package/include
 exclude src/wabt_package/_wabt_version.txt
+exclude src/wabt_package/_simde_commit.txt
 graft tests
 
 include wabt/CMakeLists.txt wabt/LICENSE wabt/README.md
@@ -14,5 +17,7 @@ graft wabt/include
 graft wabt/scripts
 include wabt/wasm2c/wasm-rt*.h wabt/wasm2c/wasm-rt*.c wabt/wasm2c/wasm-rt*.inc
 graft wabt/third_party/picosha2
+graft wabt/third_party/simde/simde
+include wabt/third_party/simde/COPYING
 
 global-exclude __pycache__ *.py[cod]

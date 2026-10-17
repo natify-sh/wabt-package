@@ -105,3 +105,32 @@ def test_python_dash_m_runs_a_tool() -> None:
         [sys.executable, "-m", "wabt_package", "wat2wasm", "--version"], check=True, capture_output=True, text=True
     ).stdout.strip()
     assert out == wabt.wabt_version()
+
+
+def test_the_simde_headers_come_with_the_commit_that_wabt_pins() -> None:
+    header = wabt.include_dir() / "simde" / "wasm" / "simd128.h"
+    assert header.is_file()
+    assert (wabt.include_dir() / "simde" / "COPYING").is_file()
+    commit = wabt.simde_commit()
+    assert len(commit) == 40 and all(c in "0123456789abcdef" for c in commit), commit
+
+
+def test_the_c_of_a_simd_module_compiles_with_the_bundled_headers(tmp_path: Path) -> None:
+    cc = shutil.which("cc") or shutil.which("gcc") or shutil.which("clang")
+    if cc is None or sys.platform == "win32":
+        pytest.skip("no C compiler of the cc kind")
+    wat = tmp_path / "simd.wat"
+    wat.write_text(
+        '(module (func (export "f") (result i32)'
+        " v128.const i32x4 1 2 3 4 v128.const i32x4 1 1 1 1 i32x4.add i32x4.extract_lane 3))",
+        encoding="utf-8",
+    )
+    wasm = tmp_path / "simd.wasm"
+    wabt.run("wat2wasm", wat, "-o", wasm)
+    c_file = tmp_path / "simd.c"
+    wabt.run("wasm2c", wasm, "-o", c_file)
+    subprocess.run(
+        [cc, "-c", str(c_file), f"-I{wabt.runtime_dir()}", f"-I{wabt.include_dir()}", "-o", str(tmp_path / "simd.o")],
+        check=True,
+        capture_output=True,
+    )

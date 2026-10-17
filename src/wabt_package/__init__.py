@@ -5,6 +5,7 @@
     wabt.run("wat2wasm", "in.wat", "-o", "out.wasm")
     wabt.get_executable("wasm2c")      # pathlib.Path of the bundled wasm2c
     wabt.runtime_dir()                 # wasm-rt.h, wasm-rt-impl.c, ... to compile the C that wasm2c writes
+    wabt.include_dir()                 # -I for it: <simde/wasm/simd128.h>, which the C of a SIMD module includes
     wabt.wabt_version()                # "1.0.42"
 
 The executables are also installed as console scripts (`wasm2c`, `wat2wasm`, ...), and `python -m wabt_package
@@ -20,7 +21,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
 
-__all__ = ["TOOLS", "bin_dir", "get_executable", "run", "runtime_dir", "wabt_version"]
+__all__ = ["TOOLS", "bin_dir", "get_executable", "include_dir", "run", "runtime_dir", "simde_commit", "wabt_version"]
 
 # The command-line tools of the pinned WABT release that the wheel carries (see build_wabt.py).
 TOOLS: tuple[str, ...] = (
@@ -57,6 +58,20 @@ def runtime_dir() -> Path:
 
     They are of the very version of the bundled `wasm2c`: compile them together with the C it writes."""
     return _PACKAGE_DIR / "wasm2c"
+
+
+def include_dir() -> Path:
+    """The directory to pass with `-I` when compiling the C that `wasm2c` writes for a module with SIMD instructions.
+
+    It holds `simde/` (the headers of https://github.com/simd-everywhere/simde, MIT): the commit that WABT pins as its
+    submodule, so it is the one this version of `wasm2c` was made with (see `simde_commit()`)."""
+    return _PACKAGE_DIR / "include"
+
+
+@lru_cache(maxsize=1)
+def simde_commit() -> str:
+    """The commit of simde whose headers are in `include_dir()`."""
+    return (_PACKAGE_DIR / "_simde_commit.txt").read_text(encoding="utf-8").strip()
 
 
 def get_executable(name: str) -> Path:

@@ -59,7 +59,7 @@ include-package-data = false
 
 [tool.setuptools.package-data]
 # Built by build_wabt.py into src/wabt_package/ (gitignored) and shipped inside the wheel.
-wabt_package = ["bin/*", "wasm2c/*", "_wabt_version.txt", "py.typed"]
+wabt_package = ["bin/*", "wasm2c/*", "include/**/*", "_wabt_version.txt", "_simde_commit.txt", "py.typed"]
 
 [tool.setuptools_scm]
 # The package version is the WABT version plus a build number: tag `v1.0.42.0` is WABT 1.0.42, build 0.
@@ -89,6 +89,18 @@ test-requires = "pytest"
 # wheel's contents are ever imported - {project} is substituted with the repo root so pytest can
 # still find the test suite itself (tests/ isn't part of the wheel).
 test-command = "pytest {project}/tests"
+
+[[tool.cibuildwheel.overrides]]
+# The manylinux_2_31 armv7l image is Ubuntu 20.04 with GCC 9, whose libstdc++ lacks <span> and std::bit_cast, which WABT
+# (C++20) uses: take GCC 12 (with its static libstdc++) from the toolchain PPA.
+select = "*-manylinux_armv7l"
+before-all = "apt-get update && apt-get install -y software-properties-common && add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt-get update && apt-get install -y gcc-12 g++-12"
+environment = { CC = "gcc-12", CXX = "g++-12" }
+
+[[tool.cibuildwheel.overrides]]
+# The manylinux_2_39 riscv64 image (Rocky Linux 10) has no static libstdc++, which the tools are linked with (CRB repository).
+select = "*-manylinux_riscv64"
+before-all = "dnf install -y libstdc++-static"
 
 [tool.cibuildwheel.macos]
 # 11.0 is the floor of arm64 macOS; x86_64 is built on its own runner (plus a universal2 wheel from the arm64 runner).
