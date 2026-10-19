@@ -135,6 +135,7 @@ dev = [
     "pre-commit>=4.6.2",
     "pyright>=1.1.400",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "ruff>=0.16.0",
     "setuptools>=77",
     "setuptools-scm>=8",
