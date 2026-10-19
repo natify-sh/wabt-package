@@ -261,7 +261,7 @@ jobs:
         id: changelog
         run: |
           VERSION=${{ steps.meta.outputs.version }}
-          BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} /^## \[/{found=0} found" CHANGELOG.md | sed '/^[[:space:]]*$/d' | head -50)
+          BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} /^## \[/{found=0} /^\[[^]]*\]: /{found=0} found" CHANGELOG.md | sed '/^[[:space:]]*$/d' | head -50)
           if [ -z "$BODY" ]; then
             BODY="See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
           fi

@@ -13,7 +13,7 @@ wasm2c add.wasm -o add.c
 ## Version
 
 `x.y.z.b`: `x.y.z` is the WABT release the tools are built from, `b` is the build number of this package
-(`1.0.42.0` is WABT 1.0.42, first build).
+(`1.0.42.0` is WABT 1.0.42, first build). Requires Python 3.11+.
 
 ## What is in it
 
@@ -57,7 +57,7 @@ of [cibuildwheel](https://cibuildwheel.pypa.io):
 | Windows | x64, ARM64, x86 |
 | macOS | arm64, x86_64, universal2 |
 
-ppc64le, s390x and riscv64 are built under QEMU. See `CHANGELOG.md` for what a release has. There are no wheels for Android, iOS or
+ppc64le, s390x and riscv64 are built under QEMU. See [CHANGELOG.md](CHANGELOG.md) for what each release has. There are no wheels for Android, iOS or
 Pyodide: the tools run on the machine that builds, and a package for those targets is built with the wheel of the host.
 Anywhere else the sdist builds the tools from source and needs a C++20 compiler (`cmake` and `ninja` are fetched from PyPI).
 
@@ -78,4 +78,4 @@ To move to a new WABT release: check out its tag in `wabt/`, commit the submodul
 
 ## License
 
-Apache-2.0, as WABT. See `LICENSE` and `NOTICE.md`.
+Apache-2.0, as WABT. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
