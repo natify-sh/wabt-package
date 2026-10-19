@@ -1,5 +1,11 @@
 # wabt-package
 
+[![license]][license-url]
+[![pypi version]][PyPiUrl]
+[![python versions]][PyPiUrl]
+[![Pre-commit]][pre-commit-workflow]
+[![coverage]][CodecovUrl]
+
 [WABT](https://github.com/WebAssembly/wabt), the WebAssembly Binary Toolkit, as a Python package: the prebuilt
 command-line tools and the `wasm2c` runtime, installable with `pip`. Like `libusb-package`, but for WABT.
 An unofficial redistribution (Apache-2.0).
@@ -17,11 +23,11 @@ wasm2c add.wasm -o add.c
 
 ## What is in it
 
-| | |
-|---|---|
-| tools | `spectest-interp`, `wasm-interp`, `wasm-objdump`, `wasm-stats`, `wasm-strip`, `wasm-validate`, `wasm2c`, `wasm2wat`, `wast2json`, `wat-desugar`, `wat2wasm` |
-| runtime | the C sources the code of `wasm2c` is compiled with (`wasm-rt.h`, `wasm-rt-impl.c`, ...), of the same version |
-| simde | the headers (`include_dir()`) that the C of a SIMD module includes, of the commit WABT pins |
+|         |                                                                                                                                                             |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| tools   | `spectest-interp`, `wasm-interp`, `wasm-objdump`, `wasm-stats`, `wasm-strip`, `wasm-validate`, `wasm2c`, `wasm2wat`, `wast2json`, `wat-desugar`, `wat2wasm` |
+| runtime | the C sources the code of `wasm2c` is compiled with (`wasm-rt.h`, `wasm-rt-impl.c`, ...), of the same version                                               |
+| simde   | the headers (`include_dir()`) that the C of a SIMD module includes, of the commit WABT pins                                                                 |
 
 Each tool is a console script; `python -m wabt_package wat2wasm ...` runs one without relying on `PATH`.
 
@@ -51,11 +57,11 @@ cc -c module.c -I"$(python -c 'import wabt_package as w; print(w.runtime_dir())'
 The publish workflow builds `py3-none-<platform>` wheels (the executables do not depend on the interpreter) for the desktop platforms
 of [cibuildwheel](https://cibuildwheel.pypa.io):
 
-| | |
-|---|---|
+|                                |                                                        |
+| ------------------------------ | ------------------------------------------------------ |
 | Linux, manylinux and musllinux | x86_64, aarch64, i686, armv7l, ppc64le, s390x, riscv64 |
-| Windows | x64, ARM64, x86 |
-| macOS | arm64, x86_64, universal2 |
+| Windows                        | x64, ARM64, x86                                        |
+| macOS                          | arm64, x86_64, universal2                              |
 
 ppc64le, s390x and riscv64 are built under QEMU. See [CHANGELOG.md](CHANGELOG.md) for what each release has. There are no wheels for Android, iOS or
 Pyodide: the tools run on the machine that builds, and a package for those targets is built with the wheel of the host.
@@ -79,3 +85,34 @@ To move to a new WABT release: check out its tag in `wabt/`, commit the submodul
 ## License
 
 Apache-2.0, as WABT. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+
+
+
+<!-- REUSABLE LINKS -->
+
+[license]:
+https://img.shields.io/github/license/natify-sh/wabt-package
+
+[license-url]:
+https://opensource.org/licenses/MIT
+
+[pypi version]:
+https://img.shields.io/pypi/v/wabt-package?logo=pypi
+
+[python versions]:
+https://img.shields.io/pypi/pyversions/wabt-package?logo=python
+
+[PyPiUrl]:
+https://pypi.org/project/wabt-package/
+
+[Pre-commit]:
+https://github.com/natify-sh/wabt-package/actions/workflows/pre-commit.yml/badge.svg
+
+[pre-commit-workflow]:
+https://github.com/natify-sh/wabt-package/actions/workflows/pre-commit.yml
+
+[coverage]:
+https://codecov.io/gh/natify-sh/wabt-package/graph/badge.svg
+
+[CodecovUrl]:
+https://codecov.io/gh/natify-sh/wabt-package

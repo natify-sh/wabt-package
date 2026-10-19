@@ -11,6 +11,7 @@ wheelhouse/
 
 # Environments
 .venv/
+.vscode/
 
 # Caches
 .ruff_cache/
