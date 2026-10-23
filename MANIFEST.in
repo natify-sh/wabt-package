@@ -2,7 +2,7 @@
 # CMake needs to build the tools. setuptools-scm lists git files but does not recurse into submodules, so the
 # submodule content is listed explicitly, and of WABT's own submodules PicoSHA2 (built into the tools) and the headers of
 # simde (shipped for the SIMD of wasm2c's C); see build_wabt.py.
-include build_wabt.py setup.py README.md LICENSE NOTICE.md CHANGELOG.md
+include build_wabt.py setup.py README.md LICENSE NOTICE.md
 graft src
 prune src/wabt_package/bin
 prune src/wabt_package/wasm2c

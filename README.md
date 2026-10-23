@@ -63,7 +63,7 @@ of [cibuildwheel](https://cibuildwheel.pypa.io):
 | Windows                        | x64, ARM64, x86                                        |
 | macOS                          | arm64, x86_64, universal2                              |
 
-ppc64le, s390x and riscv64 are built under QEMU. See [CHANGELOG.md](CHANGELOG.md) for what each release has. There are no wheels for Android, iOS or
+ppc64le, s390x and riscv64 are built under QEMU. There are no wheels for Android, iOS or
 Pyodide: the tools run on the machine that builds, and a package for those targets is built with the wheel of the host.
 Anywhere else the sdist builds the tools from source and needs a C++20 compiler (`cmake` and `ninja` are fetched from PyPI).
 
