@@ -107,6 +107,12 @@ before-all = "dnf install -y libstdc++-static"
 select = ["*-musllinux_ppc64le", "*-musllinux_s390x", "*-musllinux_riscv64"]
 build-frontend = "build"
 
+[tool.cibuildwheel.linux]
+# Docker's default seccomp profile on the Ubuntu 26.04 runners refuses 32-bit socket calls: uv panics
+# (tokio UnixStream, ENOSYS) and pip cannot reach the index in the i686 container. Run the Linux containers
+# with seccomp unconfined (the same fix natify-sh/waboros uses).
+container-engine = { name = "docker", create-args = ["--security-opt", "seccomp=unconfined"] }
+
 [tool.cibuildwheel.macos]
 # 11.0 is the floor of arm64 macOS; x86_64 is built on its own runner (plus a universal2 wheel from the arm64 runner).
 environment = { MACOSX_DEPLOYMENT_TARGET = "11.0" }
